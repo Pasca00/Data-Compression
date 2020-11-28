@@ -69,7 +69,6 @@ void compress(const std::vector<unsigned char>& content, const std::string& outp
     output_code.push_back(table[prefix]);
 	
 	writeCodesToFile(output_file, output_code);	
-
 }
 
 

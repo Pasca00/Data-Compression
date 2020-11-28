@@ -2,7 +2,7 @@ CC = g++
 CFLAGS = -Wall -Wextra -O2
 LDLIBS = -lm
 
-build: algo.o algo2.o tester.o build_best
+build: algo.o algo2.o tester.o build_best build_snd_best
 
 build_best: algo.o tester.o
 	g++ algo.o tester.o -o tester $(CFLAGS)
