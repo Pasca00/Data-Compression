@@ -196,6 +196,7 @@ string decode(minHeapNode* root, std::string encodedString) {
     string originalText = "";
 	
 	minHeapNode *curr = root;
+	
 	for (unsigned int i = 0; i <= encodedString.size(); i++) {
 		if (encodedString[i] == '0') {
 			curr = curr->l;
@@ -233,13 +234,6 @@ string buildTreeAndDecode(Alphabet *alphabet, const std::string encodedString) {
 	return decode(root, encodedString);
 }
 
-unsigned int getPaddingBits(int codeLength) {
-	unsigned int i = 0;
-	for (i = codeLength; i % 8 != 0; i++);
-	
-	return i - codeLength;
-}
-
 void writeCodeToFile(const std::string& path, std::string& newCodes, Alphabet *alphabet) {
 	std::ofstream outFile(path, std::ios::out | std::ios::binary);
 	
@@ -259,13 +253,10 @@ void writeCodeToFile(const std::string& path, std::string& newCodes, Alphabet *a
 		outFile.write((char*)(&frequency), sizeof(unsigned int));
 	}
 	
-	// Write number of padding bits that need
-	// to be ignored on decompressing
-	unsigned int paddingBits = getPaddingBits(newCodes.length());
-	outFile.write((char*)(&paddingBits), sizeof(unsigned int));
-	
-	unsigned int codeLength = newCodes.length();
-	outFile.write((char*)(&codeLength), sizeof(unsigned int));
+	// Write the encoded string's length so that 
+	// decompression knows when to stop
+	unsigned long codeLength = newCodes.length();
+	outFile.write((char*)(&codeLength), sizeof(unsigned long));
 	
 	// Write new codes
 	unsigned char byte = 0;
@@ -279,7 +270,6 @@ void writeCodeToFile(const std::string& path, std::string& newCodes, Alphabet *a
 		
 		byte |= (newCodes[i] == '1') << bitCount;
 		bitCount++;
-		
 	}
 	
 	outFile.close();
@@ -298,11 +288,15 @@ void compress(const std::vector<unsigned char>& content, const string& output_fi
 string readFromFile(const std::string path) {
 	std::ifstream inFile(path, std::ios::in | std::ios::binary);
 	
+	// Number of unique characters in original file
 	unsigned int alphabetSize = 0;
 	inFile.read((char*)(&alphabetSize), sizeof(unsigned int));
 	
 	Alphabet *originalAlphabet = new Alphabet();
-	
+
+	// Read all characters and their respective
+	// frequencies and build the original file's
+	// alphabet
 	for (unsigned int i = 0; i < alphabetSize; i++) {
 		unsigned char symbol;
 		unsigned int frequency;
@@ -312,15 +306,18 @@ string readFromFile(const std::string path) {
 		
 		originalAlphabet->addSymbolAndFreq(symbol, frequency);
 	}
+
+	// Lenght of compressed file in bits so
+	// that leftover bits are ignored
+	unsigned long compressedCodeLength;
+	inFile.read((char*)(&compressedCodeLength), sizeof(unsigned long));
 	
-	unsigned int paddingBits;
-	inFile.read((char*)(&paddingBits), sizeof(unsigned int));
-	
-	unsigned int compressedCodeLength;
-	inFile.read((char*)(&compressedCodeLength), sizeof(unsigned int));
-	
+	// Read each byte from file and create
+	// the bit string that will be used
+	// to traverse the tree and decompress
+	// the file
 	string codes = "";
-	unsigned int codeLength = 0;
+	unsigned long codeLength = 0;
 	bool done = false;
 	while (!inFile.eof() && !done) {
 		unsigned char byte;
@@ -335,7 +332,7 @@ string readFromFile(const std::string path) {
 			
 			codeLength++;
 			
-			if (codeLength == compressedCodeLength - 1) {
+			if (codeLength == compressedCodeLength) {
 				done = true;
 				break;
 			}
@@ -343,7 +340,6 @@ string readFromFile(const std::string path) {
 	}
 	
 	inFile.close();
-	
 	string originalText = buildTreeAndDecode(originalAlphabet, codes);
 
 	return originalText;
@@ -352,7 +348,11 @@ string readFromFile(const std::string path) {
 void decompress(const std::string& input_file, const std::string& output_file) {
     string originalText = readFromFile(input_file);
 	
-	ofstream decompressedFile(output_file, std::ios::out);
-	decompressedFile << originalText;
+	ofstream decompressedFile(output_file, std::ios::out | std::ios::binary);
+	
+	for (unsigned char const& c : originalText) {
+		decompressedFile.write((char*)(&c), sizeof(unsigned char));
+	}
+	
 	decompressedFile.close();
 }

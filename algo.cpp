@@ -92,7 +92,7 @@ std::string decode(const std::string& path) {
     c2 += s[0]; 
     originalText += s; 
     unsigned int count = 256;
-	cout << codes.size() << endl;
+	
     for (unsigned int i = 0; i < codes.size() - 1; i++) { 
         n = codes[i + 1]; 
 		
